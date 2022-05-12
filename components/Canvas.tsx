@@ -7,6 +7,7 @@ import {
   CubeCamera,
   CylinderGeometry,
   DoubleSide,
+  ExtrudeBufferGeometry,
   Float32BufferAttribute,
   HalfFloatType,
   Mesh,
@@ -14,6 +15,8 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
   ShaderMaterial,
+  Shape,
+  ShapeGeometry,
   SphereBufferGeometry,
   SphereGeometry,
   Texture,
@@ -137,7 +140,7 @@ export const Canvas = () => {
 
   const addHoleWall = () => {
     if (gl) {
-      const material = new MeshStandardMaterial({ color: "black" });
+      const material = new MeshStandardMaterial({ color: "red" });
 
       const box = new Mesh(new BoxBufferGeometry(0.3, 0.3, 1), material);
 
@@ -155,46 +158,59 @@ export const Canvas = () => {
 
       const resultMesh = csg.toMesh();
 
+      console.log(resultMesh);
+
       const node = new ThreeDNode(gl, resultMesh);
 
       const poly = new Polygon([
-        point(1, 1),
-        point(2, 0),
-        point(1, -1),
-        point(-1, -1),
-        point(-2, 0),
-        point(-1, 1),
+        point(-4.999560546875, -5.046299831219087),
+        point(-5.199560546875, -5.171031840285707),
+        point(-3.0191434473777576, -6.2391937661373005),
+        point(-2.972786458333333, -6.0391937661373),
+        point(-2.9264294692889083, -5.8391937661373),
+        point(-4.799560546875, -4.921567822152465),
       ]);
 
       console.log(poly.vertices);
 
-      const height = 2;
+      const height = 3;
 
-      const vertices = [
-        ...poly.vertices.map((v) => [v.x, 0, v.y]),
-        ...poly.vertices.map((v) => [v.x, height, v.y]),
-      ];
+      const wallShape = new Shape();
 
-      const points = [
-        ...poly.vertices.map(
-          (v) => new Vector3(v.x, 0, v.y),
-          ...poly.vertices.map((v) => new Vector3(v.x, height, v.y))
-        ),
-      ];
+      wallShape.moveTo(poly.vertices[0].x, poly.vertices[0].y);
+      poly.vertices.forEach((v) => {
+        wallShape.lineTo(v.x, v.y);
+      });
+      wallShape.lineTo(poly.vertices[0].x, poly.vertices[0].y);
 
-      const geo = new BufferGeometry().setFromPoints(points);
-
-      geo.setAttribute(
-        "position",
-        new Float32BufferAttribute(([] as number[]).concat(...vertices), 3)
+      const plane = new Mesh(
+        new ShapeGeometry(wallShape),
+        new MeshStandardMaterial({ color: "red" })
       );
+
+      const geo = new ExtrudeBufferGeometry(wallShape, {
+        steps: 1,
+        depth: height,
+        bevelEnabled: false,
+      });
       geo.computeVertexNormals();
+      geo.computeBoundingBox();
+
+      console.log(geo);
 
       const mesh = new Mesh(geo, material);
 
+      console.log(mesh);
+
       const node2 = new ThreeDNode(gl, mesh);
 
-      gl.add(node, node2);
+      node2.object.rotateX(-Math.PI / 2);
+
+      const node3 = new ThreeDNode(gl, plane);
+
+      node3.object.rotateX(-Math.PI / 2);
+
+      gl.add(node, node2, node3);
     }
   };
 
