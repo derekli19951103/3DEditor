@@ -69,7 +69,7 @@ export default class ThreeDNode {
 
     if (object) {
       this.addBoundingBox();
-      this.addCollionMesh();
+      // this.addCollionMesh();
     }
   }
 
@@ -174,8 +174,6 @@ export default class ThreeDNode {
 
     const line = new LineSegments(wireGeo);
     const wire = new LineGeometry().fromLineSegments(line);
-
-    console.log(wireGeo);
 
     this.bboxWire = new Line2(wire, this.hoverColor);
 

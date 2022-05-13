@@ -7,6 +7,7 @@ import {
   CubeCamera,
   CylinderGeometry,
   DoubleSide,
+  Euler,
   ExtrudeBufferGeometry,
   Float32BufferAttribute,
   HalfFloatType,
@@ -14,6 +15,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
+  Quaternion,
   ShaderMaterial,
   Shape,
   ShapeGeometry,
@@ -173,6 +175,11 @@ export const Canvas = () => {
 
       console.log(poly.vertices);
 
+      const x = poly.vertices[5].x - poly.vertices[4].x;
+      const y = poly.vertices[5].y - poly.vertices[4].y;
+
+      console.log(Math.atan(x / y));
+
       const height = 3;
 
       const wallShape = new Shape();
@@ -182,6 +189,8 @@ export const Canvas = () => {
         wallShape.lineTo(v.x, v.y);
       });
       wallShape.lineTo(poly.vertices[0].x, poly.vertices[0].y);
+
+      wallShape;
 
       const plane = new Mesh(
         new ShapeGeometry(wallShape),
@@ -193,18 +202,33 @@ export const Canvas = () => {
         depth: height,
         bevelEnabled: false,
       });
-      geo.computeVertexNormals();
+      const center = new Vector3();
       geo.computeBoundingBox();
 
-      console.log(geo);
+      geo.boundingBox!.getCenter(center);
+      geo.center();
 
       const mesh = new Mesh(geo, material);
 
-      console.log(mesh);
+      mesh.position.copy(center);
+
+      const quaternion = new Quaternion().setFromEuler(
+        new Euler(-Math.PI / 2, 0, Math.atan(x / y))
+      );
+      mesh.quaternion.set(
+        quaternion.x,
+        quaternion.y,
+        quaternion.z,
+        quaternion.w
+      );
+
+      mesh.geometry.computeBoundingBox();
 
       const node2 = new ThreeDNode(gl, mesh);
 
-      node2.object.rotateX(-Math.PI / 2);
+      node2.bbox
+        .copy(mesh.geometry.boundingBox!)
+        .applyMatrix4(mesh.matrixWorld);
 
       const node3 = new ThreeDNode(gl, plane);
 
