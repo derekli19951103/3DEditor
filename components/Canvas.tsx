@@ -160,8 +160,6 @@ export const Canvas = () => {
 
       const resultMesh = csg.toMesh();
 
-      console.log(resultMesh);
-
       const node = new ThreeDNode(gl, resultMesh);
 
       const poly = new Polygon([
@@ -173,12 +171,8 @@ export const Canvas = () => {
         point(-4.799560546875, -4.921567822152465),
       ]);
 
-      console.log(poly.vertices);
-
       const x = poly.vertices[5].x - poly.vertices[4].x;
       const y = poly.vertices[5].y - poly.vertices[4].y;
-
-      console.log(Math.atan(x / y));
 
       const height = 3;
 
@@ -190,11 +184,9 @@ export const Canvas = () => {
       });
       wallShape.lineTo(poly.vertices[0].x, poly.vertices[0].y);
 
-      wallShape;
-
       const plane = new Mesh(
         new ShapeGeometry(wallShape),
-        new MeshStandardMaterial({ color: "red" })
+        new MeshStandardMaterial({ color: "black" })
       );
 
       const geo = new ExtrudeBufferGeometry(wallShape, {
@@ -210,31 +202,46 @@ export const Canvas = () => {
 
       const mesh = new Mesh(geo, material);
 
-      mesh.position.copy(center);
-
       const quaternion = new Quaternion().setFromEuler(
         new Euler(-Math.PI / 2, 0, Math.atan(x / y))
       );
-      mesh.quaternion.set(
-        quaternion.x,
-        quaternion.y,
-        quaternion.z,
-        quaternion.w
-      );
-
-      mesh.geometry.computeBoundingBox();
+      // mesh.quaternion.set(
+      //   quaternion.x,
+      //   quaternion.y,
+      //   quaternion.z,
+      //   quaternion.w
+      // );
 
       const node2 = new ThreeDNode(gl, mesh);
 
-      node2.bbox
-        .copy(mesh.geometry.boundingBox!)
-        .applyMatrix4(mesh.matrixWorld);
+      node2.object.rotateX(-Math.PI / 2);
+      node2.object.translateX(center.x);
+      node2.object.translateY(center.y);
+      node2.object.translateZ(center.z);
+
+      // node2.object.applyQuaternion(quaternion);
+      // node2.bbox = node2.bbox
+      //   .copy(mesh.geometry.boundingBox!)
+      //   .applyMatrix4(mesh.matrixWorld);
+
+      // node2.updateWireframe();
 
       const node3 = new ThreeDNode(gl, plane);
 
       node3.object.rotateX(-Math.PI / 2);
 
-      gl.add(node, node2, node3);
+      const cubic = new Shape();
+      cubic.moveTo(0, 0);
+      cubic.bezierCurveTo(1, 0, 1, Math.cos(Math.PI / 2), 0, 1);
+
+      const node4 = new ThreeDNode(
+        gl,
+        new Mesh(new ShapeGeometry(cubic), material)
+      );
+
+      node4.object.rotateX(-Math.PI / 2);
+
+      gl.add(node, node2, node3, node4);
     }
   };
 

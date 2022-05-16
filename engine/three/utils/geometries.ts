@@ -1,0 +1,42 @@
+import { Box3, BufferGeometry, Vector3 } from "three";
+
+export const ThickWireframe = (bbox: Box3) => {
+  const bboxMin = bbox.min;
+  const bboxMax = bbox.max;
+  return new BufferGeometry().setFromPoints([
+    //1
+    new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
+    //2
+    new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
+    //3
+    new Vector3(bboxMin.x, bboxMax.y, bboxMax.z),
+    //4
+    new Vector3(bboxMin.x, bboxMax.y, bboxMin.z),
+    //1
+    new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
+    //5
+    new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
+    //6
+    new Vector3(bboxMax.x, bboxMin.y, bboxMax.z),
+    //7
+    new Vector3(bboxMax.x, bboxMax.y, bboxMax.z),
+    //8
+    new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
+    //4
+    new Vector3(bboxMin.x, bboxMax.y, bboxMin.z),
+    //3
+    new Vector3(bboxMin.x, bboxMax.y, bboxMax.z),
+    //7
+    new Vector3(bboxMax.x, bboxMax.y, bboxMax.z),
+    //6
+    new Vector3(bboxMax.x, bboxMin.y, bboxMax.z),
+    //2
+    new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
+    //1
+    new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
+    //5
+    new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
+    //8
+    new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
+  ]);
+};

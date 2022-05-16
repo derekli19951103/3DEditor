@@ -1,7 +1,6 @@
 import { extname } from "path";
 import {
   Box3,
-  BoxBufferGeometry,
   BufferGeometry,
   LineSegments,
   LoadingManager,
@@ -15,21 +14,20 @@ import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { ThickWireframe } from "./three/utils/geometries";
 import Viewport from "./Viewport";
 
 export default class ThreeDNode {
   viewport: Viewport;
 
-  parentNode: ThreeDNode | undefined;
+  parent: ThreeDNode | undefined;
   url: string | undefined;
   children: ThreeDNode[] | undefined;
 
   object: Mesh;
 
   bbox: Box3;
-  bboxWire: any;
-
-  collisionMesh: Mesh;
+  bboxWire: Line2;
 
   isRayCasted: boolean = false;
   private _isHovered: boolean = false;
@@ -43,10 +41,10 @@ export default class ThreeDNode {
   constructor(
     viewport: Viewport,
     object?: Mesh,
-    parentNode?: ThreeDNode,
+    parent?: ThreeDNode,
     children?: ThreeDNode[]
   ) {
-    this.parentNode = parentNode;
+    this.parent = parent;
     this.children = children;
     this.object = object || new Mesh();
     this.viewport = viewport;
@@ -65,11 +63,9 @@ export default class ThreeDNode {
     this.bbox = new Box3();
     this.bboxWire = new Line2();
 
-    this.collisionMesh = new Mesh();
-
     if (object) {
-      this.addBoundingBox();
-      // this.addCollionMesh();
+      this.bbox = this.bbox.setFromObject(this.object);
+      this.calculateWireframe();
     }
   }
 
@@ -116,8 +112,8 @@ export default class ThreeDNode {
                 break;
             }
 
-            this.addBoundingBox();
-            this.addCollionMesh();
+            this.bbox = this.bbox.setFromObject(this.object);
+            this.calculateWireframe();
 
             resolve();
           },
@@ -130,50 +126,10 @@ export default class ThreeDNode {
     });
   }
 
-  private addBoundingBox() {
-    this.bbox = this.bbox.setFromObject(this.object);
-    const bboxMin = this.bbox.min;
-    const bboxMax = this.bbox.max;
-
-    const wireGeo = new BufferGeometry().setFromPoints([
-      //1
-      new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
-      //2
-      new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
-      //3
-      new Vector3(bboxMin.x, bboxMax.y, bboxMax.z),
-      //4
-      new Vector3(bboxMin.x, bboxMax.y, bboxMin.z),
-      //1
-      new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
-      //5
-      new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
-      //6
-      new Vector3(bboxMax.x, bboxMin.y, bboxMax.z),
-      //7
-      new Vector3(bboxMax.x, bboxMax.y, bboxMax.z),
-      //8
-      new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
-      //4
-      new Vector3(bboxMin.x, bboxMax.y, bboxMin.z),
-      //3
-      new Vector3(bboxMin.x, bboxMax.y, bboxMax.z),
-      //7
-      new Vector3(bboxMax.x, bboxMax.y, bboxMax.z),
-      //6
-      new Vector3(bboxMax.x, bboxMin.y, bboxMax.z),
-      //2
-      new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
-      //1
-      new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
-      //5
-      new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
-      //8
-      new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
-    ]);
-
-    const line = new LineSegments(wireGeo);
-    const wire = new LineGeometry().fromLineSegments(line);
+  calculateWireframe() {
+    const wire = new LineGeometry().fromLineSegments(
+      new LineSegments(ThickWireframe(this.bbox))
+    );
 
     this.bboxWire = new Line2(wire, this.hoverColor);
 
@@ -182,20 +138,18 @@ export default class ThreeDNode {
     this.object.add(this.bboxWire);
   }
 
-  private addCollionMesh() {
-    const bboxMin = this.bbox.min;
-    const bboxMax = this.bbox.max;
+  updateWireframe() {
+    this.object.remove(this.bboxWire);
 
-    const collionGeo = new BoxBufferGeometry(
-      bboxMax.x - bboxMin.x,
-      bboxMax.y - bboxMin.y,
-      bboxMax.z - bboxMin.z
+    const wire = new LineGeometry().fromLineSegments(
+      new LineSegments(ThickWireframe(this.bbox))
     );
 
-    this.collisionMesh = new Mesh(collionGeo);
+    this.bboxWire = new Line2(wire, this.hoverColor);
 
-    this.collisionMesh.visible = false;
-    // this.object.add(this.collisionMesh);
+    this.bboxWire.visible = false;
+
+    this.object.add(this.bboxWire);
   }
 
   get isHovered() {
