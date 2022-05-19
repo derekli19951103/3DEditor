@@ -23,6 +23,7 @@ import {
   SphereGeometry,
   Texture,
   TorusKnotGeometry,
+  Vector2,
   Vector3,
   WebGLCubeRenderTarget,
 } from "three";
@@ -34,6 +35,7 @@ import { Reflector } from "three/examples/jsm/objects/Reflector";
 import Stats from "three/examples/jsm/libs/stats.module";
 import { CSG } from "../engine/three/CSG";
 import Flatten from "@flatten-js/core";
+import { StraightWall } from "../engine/utils/geometries";
 
 const { Polygon, point } = Flatten;
 
@@ -46,48 +48,6 @@ export const Canvas = () => {
   const gl = viewports.viewport1;
   const [dataUrl, setDataUrl] = useState("");
   const [open, setOpen] = useState(false);
-
-  const addCustomShaderObj = async () => {
-    if (gl) {
-      const geometry = new TorusKnotGeometry(0.5, 0.2, 100, 16);
-
-      let uniforms = {
-        Ka: { type: "float", value: 1.0 },
-        Kd: { type: "float", value: 1.0 },
-        Ks: { type: "float", value: 1.0 },
-        shininess: { type: "float", value: 80.0 },
-        lightPos: { type: "vec3", value: new Vector3(4, 4, 0) },
-        ambientColor: { type: "vec3", value: new Color("#341900") },
-        diffuseColor: { type: "vec3", value: new Color("#00ccc2") },
-        specularColor: { type: "vec3", value: new Color("#ffffff") },
-      };
-      const material = new ShaderMaterial({
-        uniforms: uniforms,
-        fragmentShader: await fetch("/shaders/halftone_frag.glsl").then(
-          async (res) => await res.text()
-        ),
-        vertexShader: await fetch("/shaders/halftone_vert.glsl").then(
-          async (res) => await res.text()
-        ),
-      });
-
-      const mesh = new Mesh(geometry, material);
-
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-
-      const node = new ThreeDNode(gl, mesh);
-
-      const size = new Vector3();
-
-      node.bbox.getSize(size);
-
-      node.object.translateY(size.y / 2);
-      node.object.translateX(4);
-
-      gl.add(node);
-    }
-  };
 
   const addNormalObj = () => {
     if (gl) {
@@ -162,49 +122,12 @@ export const Canvas = () => {
 
       const node = new ThreeDNode(gl, resultMesh);
 
-      const poly = new Polygon([
-        point(-4.999560546875, -5.046299831219087),
-        point(-5.199560546875, -5.171031840285707),
-        point(-3.0191434473777576, -6.2391937661373005),
-        point(-2.972786458333333, -6.0391937661373),
-        point(-2.9264294692889083, -5.8391937661373),
-        point(-4.799560546875, -4.921567822152465),
-      ]);
+      // const x = poly.vertices[5].x - poly.vertices[4].x;
+      // const y = poly.vertices[5].y - poly.vertices[4].y;
 
-      const x = poly.vertices[5].x - poly.vertices[4].x;
-      const y = poly.vertices[5].y - poly.vertices[4].y;
-
-      const height = 3;
-
-      const wallShape = new Shape();
-
-      wallShape.moveTo(poly.vertices[0].x, poly.vertices[0].y);
-      poly.vertices.forEach((v) => {
-        wallShape.lineTo(v.x, v.y);
-      });
-      wallShape.lineTo(poly.vertices[0].x, poly.vertices[0].y);
-
-      const plane = new Mesh(
-        new ShapeGeometry(wallShape),
-        new MeshStandardMaterial({ color: "black" })
-      );
-
-      const geo = new ExtrudeBufferGeometry(wallShape, {
-        steps: 1,
-        depth: height,
-        bevelEnabled: false,
-      });
-      const center = new Vector3();
-      geo.computeBoundingBox();
-
-      geo.boundingBox!.getCenter(center);
-      geo.center();
-
-      const mesh = new Mesh(geo, material);
-
-      const quaternion = new Quaternion().setFromEuler(
-        new Euler(-Math.PI / 2, 0, Math.atan(x / y))
-      );
+      // const quaternion = new Quaternion().setFromEuler(
+      //   new Euler(-Math.PI / 2, 0, Math.atan(x / y))
+      // );
       // mesh.quaternion.set(
       //   quaternion.x,
       //   quaternion.y,
@@ -212,12 +135,9 @@ export const Canvas = () => {
       //   quaternion.w
       // );
 
-      const node2 = new ThreeDNode(gl, mesh);
-
-      node2.object.rotateX(-Math.PI / 2);
-      node2.object.translateX(center.x);
-      node2.object.translateY(center.y);
-      node2.object.translateZ(center.z);
+      // node2.object.translateX(center.x);
+      // node2.object.translateY(center.y);
+      // node2.object.translateZ(center.z);
 
       // node2.object.applyQuaternion(quaternion);
       // node2.bbox = node2.bbox
@@ -226,22 +146,37 @@ export const Canvas = () => {
 
       // node2.updateWireframe();
 
-      const node3 = new ThreeDNode(gl, plane);
+      gl.add(node);
+    }
+  };
 
-      node3.object.rotateX(-Math.PI / 2);
+  const addWall = () => {
+    if (gl) {
+      const points = [
+        new Vector2(-4.999560546875, -5.046299831219087),
+        new Vector2(-5.199560546875, -5.171031840285707),
+        new Vector2(-3.0191434473777576, -6.2391937661373005),
+        new Vector2(-2.972786458333333, -6.0391937661373),
+        new Vector2(-2.9264294692889083, -5.8391937661373),
+        new Vector2(-4.799560546875, -4.921567822152465),
+      ];
+      const wall = StraightWall(points, 1);
 
-      const cubic = new Shape();
-      cubic.moveTo(0, 0);
-      cubic.bezierCurveTo(1, 0, 1, Math.cos(Math.PI / 2), 0, 1);
+      const mesh = new Mesh(wall, new MeshStandardMaterial({ color: "red" }));
 
-      const node4 = new ThreeDNode(
-        gl,
-        new Mesh(new ShapeGeometry(cubic), material)
-      );
+      const node = new ThreeDNode(gl, mesh);
 
-      node4.object.rotateX(-Math.PI / 2);
+      node.object.rotateX(-Math.PI / 2);
+      // node.object.translateX(center.x);
+      // node.object.translateY(center.y);
+      // node.object.translateZ(center.z);
 
-      gl.add(node, node2, node3, node4);
+      gl.add(node);
+    }
+  };
+
+  const addwall2D = () => {
+    if (gl) {
     }
   };
 
@@ -277,9 +212,6 @@ export const Canvas = () => {
       `}</style>
       <div style={{ width: "100vw", height: "100vh" }}>
         <nav className="nav" style={{ position: "absolute" }}>
-          <Button className="btn" onClick={addCustomShaderObj}>
-            Add Custom Shader Obj
-          </Button>
           <Button className="btn" onClick={addNormalObj}>
             Add Mirror
           </Button>
@@ -294,7 +226,8 @@ export const Canvas = () => {
             Add Url
           </Button>
 
-          <Button onClick={addHoleWall}>Add</Button>
+          <Button onClick={addHoleWall}>Add Hole Wall</Button>
+          <Button onClick={addWall}>Add Wall</Button>
 
           <div ref={statsRef} className="statsContainer" />
         </nav>

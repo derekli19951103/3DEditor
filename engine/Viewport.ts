@@ -23,6 +23,7 @@ import { OrbitControls } from "../engine/three/OrbitControls";
 import Stats from "three/examples/jsm/libs/stats.module";
 import { TransformControls } from "../engine/three/TransformControls";
 import ThreeDNode from "./ThreeDNode";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
 
 export default class Viewport {
   scene: Scene;
@@ -53,6 +54,11 @@ export default class Viewport {
 
   private stats: Stats;
 
+  wireMaterial = new LineMaterial({
+    color: 0x4080ff,
+    linewidth: 2,
+  });
+
   constructor(props: {
     canvas: HTMLCanvasElement;
     width?: number;
@@ -66,7 +72,7 @@ export default class Viewport {
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
       canvas,
-      antialias: true,
+      // antialias: true,
     });
 
     this.renderer.outputEncoding = sRGBEncoding;
@@ -79,6 +85,7 @@ export default class Viewport {
     if (width && height) {
       this.fixed = true;
     }
+    this.wireMaterial.resolution.set(this.width, this.height);
 
     this.camera = new PerspectiveCamera(45, this.width / this.height, 0.1, 600);
 
@@ -242,6 +249,7 @@ export default class Viewport {
     ground.receiveShadow = true;
     ground.position.y -= 0.2;
     ground.rotation.x -= Math.PI / 2;
+    this.grid.position.y -= 0.1;
     this.scene.add(this.grid, ground);
 
     this.renderer.setSize(this.width, this.height);
@@ -250,6 +258,8 @@ export default class Viewport {
       if (!this.fixed) {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
+
+        this.wireMaterial.resolution.set(this.width, this.height);
 
         this.camera.aspect = this.width / this.height;
         this.camera.updateProjectionMatrix();
@@ -290,7 +300,7 @@ export default class Viewport {
       const subsets: Mesh[] = [];
       n.object.traverse((o) => {
         //@ts-ignore
-        if (!o.isLineSegments2 && o.isMesh) {
+        if (!o.isLine2 && o.isMesh) {
           subsets.push(o as Mesh);
         }
       });

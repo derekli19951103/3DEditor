@@ -1,42 +1,29 @@
 import { extname } from "path";
-import {
-  Box3,
-  BufferGeometry,
-  LineSegments,
-  LoadingManager,
-  Matrix4,
-  Mesh,
-  Vector2,
-  Vector3,
-} from "three";
+import { Box3, LineSegments, Matrix4, Mesh } from "three";
 import { Line2 } from "three/examples/jsm/lines/Line2";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
-import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { ThickWireframe } from "./three/utils/geometries";
+import { ThickWireframe } from "./utils/geometries";
 import Viewport from "./Viewport";
 
+export type ThreeDNodeType = "object" | "wall" | "floor" | "ceiling";
 export default class ThreeDNode {
   viewport: Viewport;
 
   parent: ThreeDNode | undefined;
-  url: string | undefined;
   children: ThreeDNode[] | undefined;
 
   object: Mesh;
 
   bbox: Box3;
-  bboxWire: Line2;
+  wire: Line2 = new Line2();
 
   isRayCasted: boolean = false;
   private _isHovered: boolean = false;
   private _isSelected: boolean = false;
 
-  loadingManager: LoadingManager = new LoadingManager();
-
-  private hoverColor: LineMaterial;
-  private selectedColor: LineMaterial;
+  type: ThreeDNodeType;
 
   constructor(
     viewport: Viewport,
@@ -48,39 +35,32 @@ export default class ThreeDNode {
     this.children = children;
     this.object = object || new Mesh();
     this.viewport = viewport;
-
-    this.hoverColor = new LineMaterial({
-      color: 0x4080ff,
-      linewidth: 2,
-      resolution: new Vector2(this.viewport.width, this.viewport.height),
-    });
-    this.selectedColor = new LineMaterial({
-      color: 0x4080ff,
-      linewidth: 4,
-      resolution: new Vector2(this.viewport.width, this.viewport.height),
-    });
+    this.type = "object";
 
     this.bbox = new Box3();
-    this.bboxWire = new Line2();
 
     if (object) {
-      this.bbox = this.bbox.setFromObject(this.object);
+      if (object?.geometry.boundingBox) {
+        this.bbox = object.geometry.boundingBox;
+      } else {
+        this.bbox = this.bbox.setFromObject(this.object);
+      }
       this.calculateWireframe();
     }
+
+    this.object.add(this.wire);
   }
 
   load(url: string) {
     return new Promise<void>((resolve, reject) => {
-      this.url = url;
-
       let loader = null;
 
-      let ext = extname(url).toLowerCase();
+      const ext = extname(url).toLowerCase();
 
       switch (ext) {
         case ".gltf":
         case ".glb": {
-          loader = new GLTFLoader(this.loadingManager);
+          loader = new GLTFLoader();
 
           const dracoLoader = new DRACOLoader();
           dracoLoader.setDecoderPath("three/examples/js/libs/draco/gltf/");
@@ -127,29 +107,14 @@ export default class ThreeDNode {
   }
 
   calculateWireframe() {
-    const wire = new LineGeometry().fromLineSegments(
+    const wireGeo = new LineGeometry().fromLineSegments(
       new LineSegments(ThickWireframe(this.bbox))
     );
 
-    this.bboxWire = new Line2(wire, this.hoverColor);
+    this.wire.geometry = wireGeo;
+    this.wire.material = this.viewport.wireMaterial;
 
-    this.bboxWire.visible = false;
-
-    this.object.add(this.bboxWire);
-  }
-
-  updateWireframe() {
-    this.object.remove(this.bboxWire);
-
-    const wire = new LineGeometry().fromLineSegments(
-      new LineSegments(ThickWireframe(this.bbox))
-    );
-
-    this.bboxWire = new Line2(wire, this.hoverColor);
-
-    this.bboxWire.visible = false;
-
-    this.object.add(this.bboxWire);
+    this.wire.visible = false;
   }
 
   get isHovered() {
@@ -164,9 +129,9 @@ export default class ThreeDNode {
     this._isHovered = hovered;
 
     if (hovered === true) {
-      this.bboxWire.visible = true;
+      this.wire.visible = true;
     } else {
-      this.bboxWire.visible = false;
+      this.wire.visible = false;
     }
   }
 
@@ -174,11 +139,11 @@ export default class ThreeDNode {
     this._isSelected = selected;
 
     if (selected === true) {
-      this.bboxWire.material = this.selectedColor;
+      this.wire.material.linewidth = 4;
       this.viewport.disableTransformControls();
       this.viewport.enableTransformControls(this);
     } else {
-      this.bboxWire.material = this.hoverColor;
+      this.wire.material.linewidth = 2;
       this.viewport.disableTransformControls();
     }
   }
