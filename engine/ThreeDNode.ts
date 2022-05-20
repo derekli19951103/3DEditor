@@ -92,6 +92,8 @@ export default class ThreeDNode {
                 break;
             }
 
+            console.log(object.scene);
+
             this.bbox = this.bbox.setFromObject(this.object);
             this.calculateWireframe();
 

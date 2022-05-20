@@ -1,6 +1,7 @@
 import { Button, Col, Input, Modal, Row, Select } from "antd";
 import { useEffect, useRef, useState } from "react";
 import {
+  Box3,
   BoxBufferGeometry,
   BufferGeometry,
   Color,
@@ -11,6 +12,7 @@ import {
   ExtrudeBufferGeometry,
   Float32BufferAttribute,
   HalfFloatType,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -160,23 +162,26 @@ export const Canvas = () => {
         new Vector2(-2.9264294692889083, -5.8391937661373),
         new Vector2(-4.799560546875, -4.921567822152465),
       ];
-      const wall = StraightWall(points, 1);
+      const { geo, center, angle } = StraightWall(points, 1);
 
-      const mesh = new Mesh(wall, new MeshStandardMaterial({ color: "red" }));
+      const mesh = new Mesh(geo, new MeshStandardMaterial({ color: "red" }));
 
       const node = new ThreeDNode(gl, mesh);
 
-      node.object.rotateX(-Math.PI / 2);
-      // node.object.translateX(center.x);
-      // node.object.translateY(center.y);
-      // node.object.translateZ(center.z);
+      const matrix = new Matrix4().makeRotationFromQuaternion(
+        new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, -angle))
+      );
+      const centerMatrix = new Matrix4().makeRotationFromQuaternion(
+        new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
+      );
+
+      node.object.applyMatrix4(matrix);
+
+      center.applyMatrix4(centerMatrix);
+
+      node.object.position.copy(center);
 
       gl.add(node);
-    }
-  };
-
-  const addwall2D = () => {
-    if (gl) {
     }
   };
 
@@ -187,17 +192,15 @@ export const Canvas = () => {
 
       statsRef.current?.appendChild(stats.dom);
 
+      const viewport1 = new Viewport({ canvas: canvasRef.current, stats });
+
       setViewports({
-        viewport1: new Viewport({ canvas: canvasRef.current, stats }),
+        viewport1,
       });
+
+      viewport1.render();
     }
   }, []);
-
-  useEffect(() => {
-    if (gl) {
-      gl.render();
-    }
-  }, [gl]);
 
   /**
    * Render
