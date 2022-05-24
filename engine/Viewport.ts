@@ -247,9 +247,9 @@ export default class Viewport {
       })
     );
     ground.receiveShadow = true;
-    ground.position.y -= 0.2;
+    ground.position.y -= 0.02;
     ground.rotation.x -= Math.PI / 2;
-    this.grid.position.y -= 0.1;
+    this.grid.position.y -= 0.001;
     this.scene.add(this.grid, ground);
 
     this.renderer.setSize(this.width, this.height);

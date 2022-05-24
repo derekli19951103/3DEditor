@@ -4,7 +4,7 @@ import { Line2 } from "three/examples/jsm/lines/Line2";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { ThickWireframe } from "./utils/geometries";
+import { ThickWireframeGeometry } from "./utils/geometries";
 import Viewport from "./Viewport";
 
 export type ThreeDNodeType = "object" | "wall" | "floor" | "ceiling";
@@ -40,7 +40,7 @@ export default class ThreeDNode {
     this.bbox = new Box3();
 
     if (object) {
-      if (object?.geometry.boundingBox) {
+      if (object.geometry.boundingBox) {
         this.bbox = object.geometry.boundingBox;
       } else {
         this.bbox = this.bbox.setFromObject(this.object);
@@ -110,7 +110,7 @@ export default class ThreeDNode {
 
   calculateWireframe() {
     const wireGeo = new LineGeometry().fromLineSegments(
-      new LineSegments(ThickWireframe(this.bbox))
+      new LineSegments(ThickWireframeGeometry(this.bbox))
     );
 
     this.wire.geometry = wireGeo;
@@ -125,6 +125,10 @@ export default class ThreeDNode {
 
   get isSelected() {
     return this._isSelected;
+  }
+
+  updateBoundingBox() {
+    this.bbox = new Box3().setFromObject(this.object);
   }
 
   setHovered(hovered: boolean) {

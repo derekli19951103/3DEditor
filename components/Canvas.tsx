@@ -1,43 +1,28 @@
-import { Button, Col, Input, Modal, Row, Select } from "antd";
+import Flatten from "@flatten-js/core";
+import { Button, Input, Modal, Select } from "antd";
 import { useEffect, useRef, useState } from "react";
 import {
-  Box3,
   BoxBufferGeometry,
-  BufferGeometry,
-  Color,
-  CubeCamera,
-  CylinderGeometry,
-  DoubleSide,
   Euler,
-  ExtrudeBufferGeometry,
-  Float32BufferAttribute,
-  HalfFloatType,
   Matrix4,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
+  Points,
+  PointsMaterial,
   Quaternion,
-  ShaderMaterial,
-  Shape,
-  ShapeGeometry,
   SphereBufferGeometry,
-  SphereGeometry,
-  Texture,
-  TorusKnotGeometry,
   Vector2,
   Vector3,
-  WebGLCubeRenderTarget,
 } from "three";
+import Stats from "three/examples/jsm/libs/stats.module";
+import { Reflector } from "three/examples/jsm/objects/Reflector";
 import { SampleModelUrls } from "../constant/ModelURL";
+import { CSG } from "../engine/three/CSG";
 import ThreeDNode from "../engine/ThreeDNode";
+import { DotGeometry, StraightWallGeometry } from "../engine/utils/geometries";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
-import { Reflector } from "three/examples/jsm/objects/Reflector";
-import Stats from "three/examples/jsm/libs/stats.module";
-import { CSG } from "../engine/three/CSG";
-import Flatten from "@flatten-js/core";
-import { StraightWall } from "../engine/utils/geometries";
 
 const { Polygon, point } = Flatten;
 
@@ -117,36 +102,12 @@ export const Canvas = () => {
       const csg = new CSG();
 
       csg.subtract([box, sphere, sphereB]);
-      // csg.union([box, sphere, sphereB]);
-      // csg.intersect([box, sphere]);
 
       const resultMesh = csg.toMesh();
 
       const node = new ThreeDNode(gl, resultMesh);
 
-      // const x = poly.vertices[5].x - poly.vertices[4].x;
-      // const y = poly.vertices[5].y - poly.vertices[4].y;
-
-      // const quaternion = new Quaternion().setFromEuler(
-      //   new Euler(-Math.PI / 2, 0, Math.atan(x / y))
-      // );
-      // mesh.quaternion.set(
-      //   quaternion.x,
-      //   quaternion.y,
-      //   quaternion.z,
-      //   quaternion.w
-      // );
-
-      // node2.object.translateX(center.x);
-      // node2.object.translateY(center.y);
-      // node2.object.translateZ(center.z);
-
-      // node2.object.applyQuaternion(quaternion);
-      // node2.bbox = node2.bbox
-      //   .copy(mesh.geometry.boundingBox!)
-      //   .applyMatrix4(mesh.matrixWorld);
-
-      // node2.updateWireframe();
+      node.object.position.copy(new Vector3(4, 1, 1));
 
       gl.add(node);
     }
@@ -155,33 +116,106 @@ export const Canvas = () => {
   const addWall = () => {
     if (gl) {
       const points = [
-        new Vector2(-4.999560546875, -5.046299831219087),
-        new Vector2(-5.199560546875, -5.171031840285707),
-        new Vector2(-3.0191434473777576, -6.2391937661373005),
-        new Vector2(-2.972786458333333, -6.0391937661373),
-        new Vector2(-2.9264294692889083, -5.8391937661373),
-        new Vector2(-4.799560546875, -4.921567822152465),
+        new Vector2(-3.5, 1),
+        new Vector2(-3, 1),
+        new Vector2(-1, 3),
+        new Vector2(-1, 3.5),
+        new Vector2(-1, 4),
+        new Vector2(-4, 1),
       ];
-      const { geo, center, angle } = StraightWall(points, 1);
+      const { geo, center, angle } = StraightWallGeometry(points, 1);
 
       const mesh = new Mesh(geo, new MeshStandardMaterial({ color: "red" }));
 
       const node = new ThreeDNode(gl, mesh);
 
       const matrix = new Matrix4().makeRotationFromQuaternion(
-        new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, -angle))
-      );
-      const centerMatrix = new Matrix4().makeRotationFromQuaternion(
-        new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
+        new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, angle))
       );
 
       node.object.applyMatrix4(matrix);
 
-      center.applyMatrix4(centerMatrix);
-
       node.object.position.copy(center);
 
+      node.updateBoundingBox();
+
+      // const p1 = new Points(
+      //   DotGeometry(node.bbox.min),
+      //   new PointsMaterial({ color: "red" })
+      // );
+      // const p2 = new Points(
+      //   DotGeometry(node.bbox.max),
+      //   new PointsMaterial({ color: "red" })
+      // );
+
+      // gl.scene.add(p1, p2);
+
       gl.add(node);
+    }
+  };
+
+  const addRoom = () => {
+    const thickness = 0.5;
+    const start = 10;
+    const mid = start + thickness / 2;
+    const end = start + thickness;
+    if (gl) {
+      const walls = [
+        [
+          new Vector2(-mid, mid),
+          new Vector2(-start, start),
+          new Vector2(start, start),
+          new Vector2(mid, mid),
+          new Vector2(end, end),
+          new Vector2(-end, end),
+        ],
+        [
+          new Vector2(-mid, -mid),
+          new Vector2(-start, -start),
+          new Vector2(-start, start),
+          new Vector2(-mid, mid),
+          new Vector2(-end, end),
+          new Vector2(-end, -end),
+        ],
+        [
+          new Vector2(mid, -mid),
+          new Vector2(start, -start),
+          new Vector2(-start, -start),
+          new Vector2(-mid, -mid),
+          new Vector2(-end, -end),
+          new Vector2(end, -end),
+        ],
+        [
+          new Vector2(mid, mid),
+          new Vector2(start, start),
+          new Vector2(start, -start),
+          new Vector2(mid, -mid),
+          new Vector2(end, -end),
+          new Vector2(end, end),
+        ],
+      ];
+
+      const nodes = walls.map((points) => {
+        const { geo, center, angle } = StraightWallGeometry(points, 4);
+
+        const mesh = new Mesh(geo, new MeshStandardMaterial({ color: "gray" }));
+
+        const node = new ThreeDNode(gl, mesh);
+
+        const matrix = new Matrix4().makeRotationFromQuaternion(
+          new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, angle))
+        );
+
+        node.object.applyMatrix4(matrix);
+
+        node.object.position.copy(center);
+
+        node.updateBoundingBox();
+
+        return node;
+      });
+
+      gl.add(...nodes);
     }
   };
 
@@ -231,6 +265,7 @@ export const Canvas = () => {
 
           <Button onClick={addHoleWall}>Add Hole Wall</Button>
           <Button onClick={addWall}>Add Wall</Button>
+          <Button onClick={addRoom}>Add Room</Button>
 
           <div ref={statsRef} className="statsContainer" />
         </nav>

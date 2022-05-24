@@ -2,14 +2,14 @@ import {
   Box3,
   BufferGeometry,
   ExtrudeBufferGeometry,
+  Float32BufferAttribute,
   Matrix3,
-  Mesh,
   Shape,
   Vector2,
   Vector3,
 } from "three";
 
-export const ThickWireframe = (bbox: Box3) => {
+export const ThickWireframeGeometry = (bbox: Box3) => {
   const bboxMin = bbox.min;
   const bboxMax = bbox.max;
   return new BufferGeometry().setFromPoints([
@@ -50,8 +50,7 @@ export const ThickWireframe = (bbox: Box3) => {
   ]);
 };
 
-export const StraightWall = (points: Vector2[], depth: number) => {
-  const shape = new Shape();
+export const StraightWallGeometry = (points: Vector2[], depth: number) => {
   const rotatedShape = new Shape();
 
   const x = points[5].x - points[4].x;
@@ -66,12 +65,6 @@ export const StraightWall = (points: Vector2[], depth: number) => {
     return rotatedPoint;
   });
 
-  shape.moveTo(points[0].x, points[0].y);
-  points.forEach((v) => {
-    shape.lineTo(v.x, v.y);
-  });
-  shape.lineTo(points[0].x, points[0].y);
-
   rotatedShape.moveTo(rotatedPoints[0].x, rotatedPoints[0].y);
   rotatedPoints.forEach((v) => {
     rotatedShape.lineTo(v.x, v.y);
@@ -83,19 +76,24 @@ export const StraightWall = (points: Vector2[], depth: number) => {
     depth,
     bevelEnabled: false,
   });
-  const geo = new ExtrudeBufferGeometry(shape, {
-    steps: 1,
-    depth,
-    bevelEnabled: false,
-  });
 
-  const center = new Vector3();
+  const center = new Vector2()
+    .addVectors(points[3], points[0])
+    .multiplyScalar(0.5);
 
-  geo.computeBoundingBox();
-
-  geo.boundingBox!.getCenter(center);
+  const center3D = new Vector3(center.x, depth / 2, center.y);
 
   rotatedGeo.center();
 
-  return { geo: rotatedGeo, center, angle };
+  return { geo: rotatedGeo, center: center3D, angle };
+};
+
+export const DotGeometry = (point: Vector3) => {
+  const dotGeometry = new BufferGeometry();
+  dotGeometry.setAttribute(
+    "position",
+    new Float32BufferAttribute([point.x, point.y, point.z], 3)
+  );
+
+  return dotGeometry;
 };
