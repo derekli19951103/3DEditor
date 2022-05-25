@@ -59,6 +59,12 @@ export default class Viewport {
     linewidth: 2,
   });
 
+  //testing
+  collisionWireMaterial = new LineMaterial({
+    color: 0xff0000,
+    linewidth: 2,
+  });
+
   constructor(props: {
     canvas: HTMLCanvasElement;
     width?: number;
@@ -86,6 +92,7 @@ export default class Viewport {
       this.fixed = true;
     }
     this.wireMaterial.resolution.set(this.width, this.height);
+    this.collisionWireMaterial.resolution.set(this.width, this.height);
 
     this.camera = new PerspectiveCamera(45, this.width / this.height, 0.1, 600);
 
@@ -114,6 +121,9 @@ export default class Viewport {
 
     this.transformControls.addEventListener("dragging-changed", (e) => {
       this.orbitControls.enabled = !e.value;
+      this.selectedNodes.forEach((n) => {
+        n.updateBoundingBox();
+      });
     });
 
     this.scene.add(this.transformControls);
@@ -189,6 +199,8 @@ export default class Viewport {
             diff.y + this.dragNodesInitPos[i].y,
             diff.z + this.dragNodesInitPos[i].z
           );
+
+          node.updateBoundingBox();
         });
       }
     });
@@ -260,6 +272,7 @@ export default class Viewport {
         this.height = window.innerHeight;
 
         this.wireMaterial.resolution.set(this.width, this.height);
+        this.collisionWireMaterial.resolution.set(this.width, this.height);
 
         this.camera.aspect = this.width / this.height;
         this.camera.updateProjectionMatrix();
@@ -290,6 +303,10 @@ export default class Viewport {
     this.transformControls.detach();
   }
 
+  logNodes() {
+    console.log(this.nodes);
+  }
+
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats.update();
@@ -318,6 +335,20 @@ export default class Viewport {
         }
       }
     });
+
+    for (let i = 0, il = this.nodes.length; i < il; i++) {
+      const node = this.nodes[i];
+      const obb = node.obb;
+
+      for (let j = 0, jl = this.nodes.length; j < jl; j++) {
+        if (i !== j) {
+          const nodeToTest = this.nodes[j];
+          const obbToTest = nodeToTest.obb;
+          console.log(node.obb);
+          node.collisionWire.visible = obb.intersectsOBB(obbToTest);
+        }
+      }
+    }
 
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.render.bind(this));

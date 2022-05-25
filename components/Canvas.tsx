@@ -64,6 +64,10 @@ export const Canvas = () => {
 
       await node.load("/models/LCSHF30_mini1.glb");
 
+      node.updateBoundingBox();
+
+      node.calculateBoundingWireframe();
+
       const size = new Vector3();
 
       node.bbox.getSize(size);
@@ -78,6 +82,11 @@ export const Canvas = () => {
     if (gl) {
       const node = new ThreeDNode(gl);
       await node.load(dataUrl);
+
+      node.updateBoundingBox();
+
+      node.calculateBoundingWireframe();
+
       const size = new Vector3();
       node.bbox.getSize(size);
       node.object.position.y = size.y / 2;
@@ -107,7 +116,11 @@ export const Canvas = () => {
 
       const node = new ThreeDNode(gl, resultMesh);
 
-      node.object.position.copy(new Vector3(4, 1, 1));
+      const size = new Vector3();
+
+      node.bbox.getSize(size);
+
+      node.object.position.copy(new Vector3(0, size.y / 2, 0));
 
       gl.add(node);
     }
@@ -139,16 +152,18 @@ export const Canvas = () => {
 
       node.updateBoundingBox();
 
-      // const p1 = new Points(
-      //   DotGeometry(node.bbox.min),
-      //   new PointsMaterial({ color: "red" })
-      // );
-      // const p2 = new Points(
-      //   DotGeometry(node.bbox.max),
-      //   new PointsMaterial({ color: "red" })
-      // );
+      node.calculateObjectWireFrame();
 
-      // gl.scene.add(p1, p2);
+      const p1 = new Points(
+        DotGeometry(node.bbox.min),
+        new PointsMaterial({ color: "red" })
+      );
+      const p2 = new Points(
+        DotGeometry(node.bbox.max),
+        new PointsMaterial({ color: "red" })
+      );
+
+      gl.scene.add(p1, p2);
 
       gl.add(node);
     }
@@ -212,6 +227,8 @@ export const Canvas = () => {
 
         node.updateBoundingBox();
 
+        node.calculateObjectWireFrame();
+
         return node;
       });
 
@@ -266,6 +283,15 @@ export const Canvas = () => {
           <Button onClick={addHoleWall}>Add Hole Wall</Button>
           <Button onClick={addWall}>Add Wall</Button>
           <Button onClick={addRoom}>Add Room</Button>
+          <Button
+            onClick={() => {
+              if (gl) {
+                gl.logNodes();
+              }
+            }}
+          >
+            Log Nodes
+          </Button>
 
           <div ref={statsRef} className="statsContainer" />
         </nav>

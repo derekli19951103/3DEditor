@@ -1,11 +1,12 @@
 import { extname } from "path";
-import { Box3, LineSegments, Matrix4, Mesh } from "three";
+import { Box3, LineSegments, Matrix4, Mesh, Vector3 } from "three";
 import { Line2 } from "three/examples/jsm/lines/Line2";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { ThickWireframeGeometry } from "./utils/geometries";
 import Viewport from "./Viewport";
+import { OBB } from "three/examples/jsm/math/OBB";
 
 export type ThreeDNodeType = "object" | "wall" | "floor" | "ceiling";
 export default class ThreeDNode {
@@ -18,6 +19,10 @@ export default class ThreeDNode {
 
   bbox: Box3;
   wire: Line2 = new Line2();
+  obb: OBB;
+
+  //testing
+  collisionWire: Line2 = new Line2();
 
   isRayCasted: boolean = false;
   private _isHovered: boolean = false;
@@ -38,6 +43,7 @@ export default class ThreeDNode {
     this.type = "object";
 
     this.bbox = new Box3();
+    this.obb = new OBB();
 
     if (object) {
       if (object.geometry.boundingBox) {
@@ -45,10 +51,12 @@ export default class ThreeDNode {
       } else {
         this.bbox = this.bbox.setFromObject(this.object);
       }
-      this.calculateWireframe();
+      this.calculateBoundingWireframe();
+      this.calculateOBB();
     }
 
     this.object.add(this.wire);
+    this.object.add(this.collisionWire);
   }
 
   load(url: string) {
@@ -92,11 +100,6 @@ export default class ThreeDNode {
                 break;
             }
 
-            console.log(object.scene);
-
-            this.bbox = this.bbox.setFromObject(this.object);
-            this.calculateWireframe();
-
             resolve();
           },
           (xhr) => {},
@@ -108,12 +111,30 @@ export default class ThreeDNode {
     });
   }
 
-  calculateWireframe() {
+  calculateBoundingWireframe() {
     const wireGeo = new LineGeometry().fromLineSegments(
       new LineSegments(ThickWireframeGeometry(this.bbox))
     );
 
     this.wire.geometry = wireGeo;
+    this.wire.material = this.viewport.wireMaterial;
+
+    this.wire.visible = false;
+
+    // testing
+    const wireGeoT = new LineGeometry().fromLineSegments(
+      new LineSegments(ThickWireframeGeometry(this.bbox))
+    );
+
+    this.collisionWire.geometry = wireGeoT;
+    this.collisionWire.material = this.viewport.collisionWireMaterial;
+
+    this.collisionWire.visible = false;
+  }
+
+  calculateObjectWireFrame() {
+    this.wire.geometry = new LineGeometry().fromMesh(this.object);
+
     this.wire.material = this.viewport.wireMaterial;
 
     this.wire.visible = false;
@@ -129,6 +150,11 @@ export default class ThreeDNode {
 
   updateBoundingBox() {
     this.bbox = new Box3().setFromObject(this.object);
+    this.calculateOBB();
+  }
+
+  calculateOBB() {
+    this.obb = new OBB().fromBox3(this.bbox);
   }
 
   setHovered(hovered: boolean) {
