@@ -151,6 +151,7 @@ export const Canvas = () => {
       node.object.position.copy(center);
 
       node.updateBoundingBox();
+      node.updateOBB();
 
       node.calculateObjectWireFrame();
 

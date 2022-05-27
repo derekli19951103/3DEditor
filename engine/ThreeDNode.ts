@@ -24,6 +24,8 @@ export default class ThreeDNode {
   //testing
   collisionWire: Line2 = new Line2();
 
+  collisionList: ThreeDNode[] = [];
+
   isRayCasted: boolean = false;
   private _isHovered: boolean = false;
   private _isSelected: boolean = false;
@@ -52,7 +54,7 @@ export default class ThreeDNode {
         this.bbox = this.bbox.setFromObject(this.object);
       }
       this.calculateBoundingWireframe();
-      this.calculateOBB();
+      this.updateOBB();
     }
 
     this.object.add(this.wire);
@@ -150,11 +152,12 @@ export default class ThreeDNode {
 
   updateBoundingBox() {
     this.bbox = new Box3().setFromObject(this.object);
-    this.calculateOBB();
   }
 
-  calculateOBB() {
-    this.obb = new OBB().fromBox3(this.bbox);
+  updateOBB() {
+    this.obb = new OBB()
+      .fromBox3(this.bbox)
+      .applyMatrix4(this.object.matrixWorld);
   }
 
   setHovered(hovered: boolean) {

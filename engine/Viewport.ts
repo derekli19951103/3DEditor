@@ -201,6 +201,7 @@ export default class Viewport {
           );
 
           node.updateBoundingBox();
+          node.updateOBB();
         });
       }
     });
@@ -340,15 +341,14 @@ export default class Viewport {
       const node = this.nodes[i];
       const obb = node.obb;
 
-      for (let j = 0, jl = this.nodes.length; j < jl; j++) {
-        if (i !== j) {
-          const nodeToTest = this.nodes[j];
-          const obbToTest = nodeToTest.obb;
-          console.log(node.obb);
-          node.collisionWire.visible = obb.intersectsOBB(obbToTest);
-        }
-      }
+      node.collisionList = this.nodes.filter((other, j) => {
+        return i !== j && obb.intersectsOBB(other.obb);
+      });
     }
+
+    this.nodes.forEach((node) => {
+      node.collisionWire.visible = node.collisionList.length > 0;
+    });
 
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.render.bind(this));
