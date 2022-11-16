@@ -346,9 +346,9 @@ export default class Viewport {
       });
     }
 
-    this.nodes.forEach((node) => {
-      node.collisionWire.visible = node.collisionList.length > 0;
-    });
+//     this.nodes.forEach((node) => {
+//       node.collisionWire.visible = node.collisionList.length > 0;
+//     });
 
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.render.bind(this));
